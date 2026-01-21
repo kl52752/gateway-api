@@ -22,6 +22,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 	"sigs.k8s.io/gateway-api/conformance/utils/http"
 	"sigs.k8s.io/gateway-api/conformance/utils/kubernetes"
@@ -31,7 +32,7 @@ import (
 )
 
 func init() {
-	ConformanceTests = append(ConformanceTests, GatewayClientCertificateValidation)
+	ConformanceTests = append(ConformanceTests, GatewayClientCertificateValidation, GatewayInvalidClientCertificateValidation)
 }
 
 var GatewayClientCertificateValidation = suite.ConformanceTest{
@@ -157,6 +158,149 @@ var GatewayClientCertificateValidation = suite.ConformanceTest{
 			}
 			// send request to the first listener and validate that it is failing
 			tls.MakeTLSRequestAndExpectFailureResponse(t, suite.RoundTripper, defaultAddr, serverCertPem, clientCertPerPortPem, clientCertPerPortKey, "example.org", expectedFailure)
+		})
+	},
+}
+
+var GatewayInvalidClientCertificateValidation = suite.ConformanceTest{
+	ShortName:   "GatewayInvalidClientCertificateValidation",
+	Description: "Gateway's shoudl report Status on invalid Client Certificate Validation Config",
+	Features: []features.FeatureName{
+		features.SupportGateway,
+		features.SupportHTTPRoute,
+		features.SupportGatewayClientCertificateValidation,
+	},
+	Manifests: []string{"tests/gateway-with-clientcertificate-validation.yaml"},
+	Test: func(t *testing.T, suite *suite.ConformanceTestSuite) {
+		ns := "gateway-conformance-infra"
+
+		// Validate that invalid configuration for Default and PerPort client certificate valiadtion
+		// impacts only status of affected Listener.
+		t.Run("Validate status for invalid client certificate configuration", func(t *testing.T) {
+			cases := []struct {
+				name               string
+				gwNN               types.NamespacedName
+				lName              string
+				expectedConditions []metav1.Condition
+			}{
+				{
+					name:  "unresolved reference",
+					gwNN:  types.NamespacedName{Name: "client-validation-reference-not-exist", Namespace: ns},
+					lName: "https",
+					expectedConditions: []metav1.Condition{
+						{
+							Type:   string(gatewayv1.ListenerConditionResolvedRefs),
+							Status: metav1.ConditionFalse,
+							Reason: "InvalidCACertificateRef",
+						},
+						{
+							Type:   string(gatewayv1.ListenerConditionAccepted),
+							Status: metav1.ConditionFalse,
+							Reason: "NoValidCACertificate",
+						},
+						{
+							Type:   string(gatewayv1.ListenerConditionProgrammed),
+							Status: metav1.ConditionFalse,
+							Reason: "", // any reason
+						},
+					},
+				},
+				{
+					name:  "expect that default unresolved configuration does not affect listener with valid per port configuration",
+					gwNN:  types.NamespacedName{Name: "client-validation-reference-not-exist", Namespace: ns},
+					lName: "https-with-hostname",
+					expectedConditions: []metav1.Condition{
+						{
+							Type:   string(gatewayv1.ListenerConditionResolvedRefs),
+							Status: metav1.ConditionTrue,
+							Reason: "", // any reason
+						},
+						{
+							Type:   string(gatewayv1.ListenerConditionAccepted),
+							Status: metav1.ConditionTrue,
+							Reason: "", // any reason
+						},
+						{
+							Type:   string(gatewayv1.ListenerConditionProgrammed),
+							Status: metav1.ConditionTrue,
+							Reason: "", // any reason
+						},
+					},
+				},
+				{
+					name:  "invalid kind",
+					gwNN:  types.NamespacedName{Name: "client-validation-invalid-kind", Namespace: ns},
+					lName: "https-with-hostname",
+					expectedConditions: []metav1.Condition{
+						{
+							Type:   string(gatewayv1.ListenerConditionResolvedRefs),
+							Status: metav1.ConditionFalse,
+							Reason: "InvalidCACertificateKind",
+						},
+						{
+							Type:   string(gatewayv1.ListenerConditionAccepted),
+							Status: metav1.ConditionFalse,
+							Reason: "NoValidCACertificate",
+						},
+						{
+							Type:   string(gatewayv1.ListenerConditionProgrammed),
+							Status: metav1.ConditionFalse,
+							Reason: "", // any reason
+						},
+					},
+				},
+				{
+					name:  "expect that reference with invalid kind in per port configuration does not affect listener with valid default configuration",
+					gwNN:  types.NamespacedName{Name: "client-validation-invalid-kind", Namespace: ns},
+					lName: "https",
+					expectedConditions: []metav1.Condition{
+						{
+							Type:   string(gatewayv1.ListenerConditionResolvedRefs),
+							Status: metav1.ConditionTrue,
+							Reason: "", // any reason
+						},
+						{
+							Type:   string(gatewayv1.ListenerConditionAccepted),
+							Status: metav1.ConditionTrue,
+							Reason: "", // any reason
+						},
+						{
+							Type:   string(gatewayv1.ListenerConditionProgrammed),
+							Status: metav1.ConditionTrue,
+							Reason: "", // any reason
+						},
+					},
+				},
+				{
+					name:  "expect that the listener will be accepted if at least one client certificate configuration is valid",
+					gwNN:  types.NamespacedName{Name: "client-validation-partial-invalid", Namespace: ns},
+					lName: "https",
+					expectedConditions: []metav1.Condition{
+						{
+							Type:   string(gatewayv1.ListenerConditionResolvedRefs),
+							Status: metav1.ConditionFalse,
+							Reason: "InvalidCACertificateRef",
+						},
+						{
+							Type:   string(gatewayv1.ListenerConditionAccepted),
+							Status: metav1.ConditionTrue,
+							Reason: "", // any reason
+						},
+						{
+							Type:   string(gatewayv1.ListenerConditionProgrammed),
+							Status: metav1.ConditionTrue,
+							Reason: "", // any reason
+						},
+					},
+				},
+			}
+
+			for _, tc := range cases {
+				t.Run(tc.name, func(t *testing.T) {
+					kubernetes.GatewayListenerMustHaveConditions(t, suite.Client, suite.TimeoutConfig, tc.gwNN, tc.lName, tc.expectedConditions)
+				})
+			}
+
 		})
 	},
 }
