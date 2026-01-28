@@ -109,7 +109,7 @@ var GatewayFrontendClientCertificateValidation = suite.ConformanceTest{
 				GetClientCertificateHook: getValidClientCert,
 			}
 			// send request to the second listener and validate that it is failing
-			tls.MakeTLSRequestAndExpectFailureResponse(t, suite.RoundTripper, perPortAddr, serverCertPem, clientCertPem, clientCertKey, "second-example.org", expectedFailure)
+			tls.MakeTLSRequestAndExpectFailureResponse(t, suite.RoundTripper, perPortAddr, serverCertPem, "second-example.org", expectedFailure)
 		})
 
 		// Get Client Certificate for per port configuration
@@ -156,7 +156,7 @@ var GatewayFrontendClientCertificateValidation = suite.ConformanceTest{
 				GetClientCertificateHook: getValidPerPortClientCert,
 			}
 			// send request to the first listener and validate that it is failing
-			tls.MakeTLSRequestAndExpectFailureResponse(t, suite.RoundTripper, defaultAddr, serverCertPem, clientCertPerPortPem, clientCertPerPortKey, "example.org", expectedFailure)
+			tls.MakeTLSRequestAndExpectFailureResponse(t, suite.RoundTripper, defaultAddr, serverCertPem, "example.org", expectedFailure)
 		})
 	},
 }
