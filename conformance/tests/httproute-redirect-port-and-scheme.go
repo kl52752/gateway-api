@@ -304,7 +304,7 @@ var HTTPRouteRedirectPortAndScheme = suite.ConformanceTest{
 			tc := testCases[i]
 			t.Run("https-listener-on-443/"+tc.GetTestCaseName(i), func(t *testing.T) {
 				t.Parallel()
-				tls.MakeTLSRequestAndExpectEventuallyConsistentResponse(t, suite.RoundTripper, suite.TimeoutConfig, gwAddr443, serverCertPem, nil, nil, "example.org", tc)
+				tls.MakeTLSRequestAndExpectEventuallyConsistentResponse(t, suite.RoundTripper, suite.TimeoutConfig, gwAddr443, serverCertPem, "example.org", tc)
 			})
 		}
 	},

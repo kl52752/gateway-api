@@ -74,7 +74,7 @@ var HTTPRouteHTTPSListener = suite.ConformanceTest{
 				Namespace: "gateway-conformance-infra",
 			}
 			t.Run(expected.GetTestCaseName(i), func(t *testing.T) {
-				tls.MakeTLSRequestAndExpectEventuallyConsistentResponse(t, suite.RoundTripper, suite.TimeoutConfig, gwAddr, serverCertPem, nil, nil, tc.host, expected)
+				tls.MakeTLSRequestAndExpectEventuallyConsistentResponse(t, suite.RoundTripper, suite.TimeoutConfig, gwAddr, serverCertPem, tc.host, expected)
 			})
 		}
 	},

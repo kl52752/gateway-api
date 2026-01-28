@@ -31,14 +31,12 @@ import (
 //
 // Once the request succeeds consistently with the response having the expected status code, make
 // additional assertions on the response body using the provided ExpectedResponse.
-func MakeTLSRequestAndExpectEventuallyConsistentResponse(t *testing.T, r roundtripper.RoundTripper, timeoutConfig config.TimeoutConfig, gwAddr string, serverCertificate, clientCertificate, clientCertificateKey []byte, serverName string, expected http.ExpectedResponse) {
+func MakeTLSRequestAndExpectEventuallyConsistentResponse(t *testing.T, r roundtripper.RoundTripper, timeoutConfig config.TimeoutConfig, gwAddr string, serverCertificate []byte, serverName string, expected http.ExpectedResponse) {
 	t.Helper()
 
 	req := http.MakeRequest(t, &expected, gwAddr, roundtripper.HTTPSProtocol, "https")
 	req.ServerName = serverName
 	req.ServerCertificate = serverCertificate
-	req.ClientCertificate = clientCertificate
-	req.ClientCertificateKey = clientCertificateKey
 
 	WaitForConsistentTLSResponse(t, r, req, expected, timeoutConfig.RequiredConsecutiveSuccesses, timeoutConfig.MaxTimeToConsistency)
 }

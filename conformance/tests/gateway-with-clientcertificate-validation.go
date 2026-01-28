@@ -97,7 +97,7 @@ var GatewayFrontendClientCertificateValidation = suite.ConformanceTest{
 				GetClientCertificateHook: getValidClientCert,
 			}
 			// send request to the first listener and validate that it is passing
-			tls.MakeTLSRequestAndExpectEventuallyConsistentResponse(t, suite.RoundTripper, suite.TimeoutConfig, defaultAddr, serverCertPem, clientCertPem, clientCertKey, "example.org", expectedSuccess)
+			tls.MakeTLSRequestAndExpectEventuallyConsistentResponse(t, suite.RoundTripper, suite.TimeoutConfig, defaultAddr, serverCertPem, "example.org", expectedSuccess)
 			if getClientCertID != 1 {
 				t.Errorf("Client Certificate was not presented during the handshake to default")
 			}
@@ -143,7 +143,7 @@ var GatewayFrontendClientCertificateValidation = suite.ConformanceTest{
 				GetClientCertificateHook: getValidPerPortClientCert,
 			}
 			// send request to the second listener and validate that it is passing
-			tls.MakeTLSRequestAndExpectEventuallyConsistentResponse(t, suite.RoundTripper, suite.TimeoutConfig, perPortAddr, serverCertPem, clientCertPerPortPem, clientCertPerPortKey, "second-example.org", expectedSucces)
+			tls.MakeTLSRequestAndExpectEventuallyConsistentResponse(t, suite.RoundTripper, suite.TimeoutConfig, perPortAddr, serverCertPem, "second-example.org", expectedSucces)
 			if getClientCertID != 2 {
 				t.Errorf("Client Certificate was not presented during the handshake to per port listener")
 			}

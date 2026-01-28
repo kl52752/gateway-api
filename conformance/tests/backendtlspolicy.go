@@ -80,7 +80,7 @@ var BackendTLSPolicy = suite.ConformanceTest{
 				t.Fatalf("unexpected error finding TLS secret: %v", err)
 			}
 			// Verify that the request to a re-encrypted call to /backendTLS should succeed.
-			tls.MakeTLSRequestAndExpectEventuallyConsistentResponse(t, suite.RoundTripper, suite.TimeoutConfig, gwAddr, serverCertPem, nil, nil, "https-listener.org",
+			tls.MakeTLSRequestAndExpectEventuallyConsistentResponse(t, suite.RoundTripper, suite.TimeoutConfig, gwAddr, serverCertPem, "https-listener.org",
 				h.ExpectedResponse{
 					Namespace: ns,
 					Request: h.Request{
